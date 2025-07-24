@@ -98,8 +98,22 @@ npm run start unfollow "https://example.com/rss"
 # Browse latest 2 posts from feeds you follow (default)
 npm run start browse
 
-# Browse latest 10 posts
+# Browse latest 10 posts (backward compatible)
 npm run start browse 10
+
+# Browse with modern options
+npm run start browse --limit 5 --page 2                    # Page 2, 5 posts per page
+npm run start browse --sort title --order asc              # Sort alphabetically by title
+npm run start browse --feed "Hacker News"                  # Filter by feed name
+npm run start browse --search "javascript"                 # Search in post titles
+npm run start browse --after 2024-01-01                    # Posts after specific date
+npm run start browse --before 2024-12-31                   # Posts before specific date
+
+# Combined options
+npm run start browse --limit 10 --sort published_at --feed "Tech" --search "AI"
+
+# Get help with all options
+npm run start browse --help
 ```
 
 #### Feed Aggregation
@@ -144,7 +158,11 @@ npm run start browse 5
 - **User Management**: Register, login, and manage multiple users
 - **RSS Feed Management**: Add, follow, and unfollow RSS feeds
 - **Automatic Post Collection**: Continuously fetch and store posts from followed feeds
-- **Post Browsing**: View recent posts from your followed feeds in a clean terminal format
+- **Advanced Post Browsing**: 
+  - **Pagination**: Navigate through large numbers of posts
+  - **Sorting**: Sort by publish date, creation date, or title (ascending/descending)
+  - **Filtering**: Filter by feed name, search in titles, date ranges
+  - **Flexible Display**: Choose how many posts to show per page
 - **Duplicate Prevention**: Automatically handles duplicate posts
 - **Flexible Scheduling**: Configure how often feeds are fetched
 - **Date Parsing**: Handles various RSS date formats

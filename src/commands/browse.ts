@@ -1,5 +1,6 @@
 import { User, UserCommandHandler } from '../types/command';
-import { getPostsForUser } from '../lib/db/queries/posts';
+import { getPostsForUser, PostsQueryOptions } from '../lib/db/queries/posts';
+import { parseBrowseArgs, showBrowseHelp } from '../lib/utils';
 
 export const handlerBrowse: UserCommandHandler = async (cmdName: string, user: User, ...args: string[]): Promise<void> => {
     if (!cmdName || cmdName !== 'browse') {
@@ -7,29 +8,53 @@ export const handlerBrowse: UserCommandHandler = async (cmdName: string, user: U
         return;
     }
 
-    // Parse the limit argument if provided
-    let limit = 2; // Default limit
-    if (args.length > 0) {
-        const parsedLimit = parseInt(args[0], 10);
-        if (!isNaN(parsedLimit) && parsedLimit > 0) {
-            limit = parsedLimit;
-        } else {
-            throw new Error(`Invalid limit: ${args[0]}. Please provide a positive number.`);
-        }
+    // Check for help flag
+    if (args.includes('--help') || args.includes('-h')) {
+        showBrowseHelp();
+        return;
     }
 
     try {
-        const posts = await getPostsForUser(user.id, limit);
+        // Parse command line arguments
+        const browseOptions = parseBrowseArgs(args);
         
-        if (posts.length === 0) {
-            console.log("No posts found. Make sure you're following some feeds!");
+        // Set defaults
+        const limit = browseOptions.limit || 2;
+        const page = browseOptions.page || 1;
+        const offset = (page - 1) * limit;
+        
+        // Build query options
+        const queryOptions: PostsQueryOptions = {
+            limit,
+            offset,
+            sortBy: browseOptions.sortBy || 'published_at',
+            sortOrder: browseOptions.sortOrder || 'desc',
+            feedName: browseOptions.feedName,
+            titleSearch: browseOptions.titleSearch,
+            publishedAfter: browseOptions.publishedAfter,
+            publishedBefore: browseOptions.publishedBefore
+        };
+
+        const result = await getPostsForUser(user.id, queryOptions);
+        
+        if (result.posts.length === 0) {
+            if (result.totalCount === 0) {
+                console.log("No posts found. Make sure you're following some feeds!");
+            } else {
+                console.log("No posts found matching your criteria.");
+            }
             return;
         }
 
-        console.log(`Found ${posts.length} posts:\n`);
+        // Display header with filtering/sorting info
+        console.log(formatBrowseHeader(result, page, limit, queryOptions));
         
-        for (const post of posts) {
-            console.log(`Title: ${post.title}`);
+        // Display posts
+        for (let i = 0; i < result.posts.length; i++) {
+            const post = result.posts[i];
+            const postNumber = offset + i + 1;
+            
+            console.log(`\n[${postNumber}] ${post.title}`);
             console.log(`URL: ${post.url}`);
             console.log(`Feed: ${post.feedName}`);
             
@@ -46,10 +71,61 @@ export const handlerBrowse: UserCommandHandler = async (cmdName: string, user: U
                 console.log(`Description: ${truncatedDesc}`);
             }
             
-            console.log('---'); // Separator between posts
+            if (i < result.posts.length - 1) {
+                console.log('---');
+            }
         }
+        
+        // Display pagination info
+        console.log(formatPaginationInfo(result, page, limit));
+        
     } catch (error) {
         console.error('Error browsing posts:', error instanceof Error ? error.message : 'Unknown error');
         throw error;
     }
 };
+
+function formatBrowseHeader(result: any, page: number, limit: number, options: PostsQueryOptions): string {
+    let header = `\nShowing ${result.posts.length} of ${result.totalCount} posts`;
+    
+    if (page > 1 || result.hasMore) {
+        header += ` (page ${page})`;
+    }
+    
+    const filters = [];
+    if (options.feedName) filters.push(`feed: "${options.feedName}"`);
+    if (options.titleSearch) filters.push(`search: "${options.titleSearch}"`);
+    if (options.publishedAfter) filters.push(`after: ${options.publishedAfter.toDateString()}`);
+    if (options.publishedBefore) filters.push(`before: ${options.publishedBefore.toDateString()}`);
+    
+    if (filters.length > 0) {
+        header += `\nFiltered by: ${filters.join(', ')}`;
+    }
+    
+    if (options.sortBy !== 'published_at' || options.sortOrder !== 'desc') {
+        header += `\nSorted by: ${options.sortBy} (${options.sortOrder})`;
+    }
+    
+    return header;
+}
+
+function formatPaginationInfo(result: any, page: number, limit: number): string {
+    if (result.totalCount <= limit) {
+        return ''; // No pagination needed
+    }
+    
+    const totalPages = Math.ceil(result.totalCount / limit);
+    let info = `\nPage ${page} of ${totalPages}`;
+    
+    if (page > 1) {
+        info += ` | Previous: --page ${page - 1}`;
+    }
+    
+    if (result.hasMore) {
+        info += ` | Next: --page ${page + 1}`;
+    }
+    
+    info += `\nUse --help to see all browsing options`;
+    
+    return info;
+}
