@@ -1,6 +1,9 @@
 import { db } from "..";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {feeds, feed_follows, users} from "../schema";
+import { fetchFeed } from "../../feed";
+import { createPost } from "./posts";
+import { parsePublishedDate } from "../../utils";
 
 export async function addFeed(url: string, name: string, userId: string): Promise<any> {
     const [result] = await db
@@ -79,4 +82,74 @@ export async function getFeedFollowsForUser(userId: string): Promise<any> {
 
 export async function deleteFeedFollow(feedId: string, userId: string): Promise<void> {
     await db.delete(feed_follows).where(and(eq(feed_follows.feed_id, feedId), eq(feed_follows.user_id, userId)))
+}
+
+export async function markFeedFetched(feedId: string): Promise<void> {
+    const now = new Date();
+    await db
+        .update(feeds)
+        .set({ 
+            lastFetchedAt: now,
+            updatedAt: now 
+        })
+        .where(eq(feeds.id, feedId));
+}
+
+export async function getNextFeedToFetch(): Promise<any> {
+    const [result] = await db
+        .select()
+        .from(feeds)
+        .orderBy(sql`${feeds.lastFetchedAt} ASC NULLS FIRST`)
+        .limit(1);
+    return result;
+}
+
+export async function scrapeFeeds(): Promise<void> {
+    const feed = await getNextFeedToFetch();
+    
+    if (!feed) {
+        console.log("No feeds found to scrape");
+        return;
+    }
+    
+    try {
+        console.log(`Fetching feed: ${feed.name} (${feed.url})`);
+        
+        await markFeedFetched(feed.id);
+        
+        const rssData = await fetchFeed(feed.url);
+        
+        if (rssData.channel.item && rssData.channel.item.length > 0) {
+            console.log(`Found ${rssData.channel.item.length} posts in ${feed.name}`);
+            
+            let savedCount = 0;
+            for (const item of rssData.channel.item) {
+                try {
+                    const publishedAt = parsePublishedDate(item.pubDate);
+                    const post = await createPost(
+                        item.title,
+                        item.link,
+                        feed.id,
+                        item.description,
+                        publishedAt
+                    );
+                    
+                    if (post) {
+                        savedCount++;
+                    }
+                } catch (error) {
+                    // Likely a duplicate URL, which is fine
+                    if (error instanceof Error && !error.message.includes('duplicate')) {
+                        console.error(`Error saving post: ${error.message}`);
+                    }
+                }
+            }
+            
+            console.log(`Saved ${savedCount} new posts from ${feed.name}`);
+        } else {
+            console.log(`No posts found in ${feed.name}`);
+        }
+    } catch (error) {
+        console.error(`Error fetching feed ${feed.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }

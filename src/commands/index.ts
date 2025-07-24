@@ -7,6 +7,7 @@ import { handlerReset } from './reset';
 import { handlerGetUsers } from './getusers';
 import { handlerAgg } from './agg';
 import { handlerAddFeed, handlerFeeds, handlerFollowFeed, handlerFeedFollowing, handlerUnfollowFeed } from './feeds';
+import { handlerBrowse } from './browse';
 
 export const registry: CommandsRegistry = {};
 
@@ -20,6 +21,7 @@ registerCommand(registry, 'feeds', handlerFeeds);
 registerCommand(registry, 'follow', middlewareLoggedIn(handlerFollowFeed));
 registerCommand(registry, 'following', middlewareLoggedIn(handlerFeedFollowing));
 registerCommand(registry, 'unfollow', middlewareLoggedIn(handlerUnfollowFeed));
+registerCommand(registry, 'browse', middlewareLoggedIn(handlerBrowse));
 
 export function middlewareLoggedIn(handler: UserCommandHandler): CommandHandler {
     return async (cmdName: string, ...args: string[]): Promise<void> => {

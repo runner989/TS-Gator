@@ -1,4 +1,5 @@
-import { fetchFeed } from '../lib/feed';
+import { scrapeFeeds } from '../lib/db/queries/feeds';
+import { parseDuration, formatDuration } from '../lib/utils';
 
 export async function handlerAgg(cmdName: string, ...args: string[]): Promise<void> {
     if (!cmdName || cmdName !== 'agg') {
@@ -6,11 +7,41 @@ export async function handlerAgg(cmdName: string, ...args: string[]): Promise<vo
         return;
     }
 
+    if (args.length !== 1) {
+        throw new Error(`usage: ${cmdName} <time_between_reqs>`);
+    }
+
+    const durationStr = args[0];
+    
     try {
-        const feed = await fetchFeed('https://www.wagslane.dev/index.xml');
-        console.log(JSON.stringify(feed, null, 2));
+        const timeBetweenRequests = parseDuration(durationStr);
+        const formattedDuration = formatDuration(timeBetweenRequests);
+        
+        console.log(`Collecting feeds every ${formattedDuration}`);
+        
+        const handleError = (error: any) => {
+            console.error('Error in scrapeFeeds:', error instanceof Error ? error.message : 'Unknown error');
+        };
+        
+        // Run scrapeFeeds immediately
+        scrapeFeeds().catch(handleError);
+        
+        // Set up interval for subsequent runs
+        const interval = setInterval(() => {
+            scrapeFeeds().catch(handleError);
+        }, timeBetweenRequests);
+        
+        // Handle graceful shutdown
+        await new Promise<void>((resolve) => {
+            process.on("SIGINT", () => {
+                console.log("\nShutting down feed aggregator...");
+                clearInterval(interval);
+                resolve();
+            });
+        });
+        
     } catch (error) {
-        console.error('Error fetching feed:', error);
+        console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
         throw error;
     }
 }

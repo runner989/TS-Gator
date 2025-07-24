@@ -6,8 +6,8 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "build": "tsc",
-    "generate": "drizzle-kit generate",
-    "migrate": "drizzle-kit migrate"
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
   },
   "devDependencies": {
     "@types/node": "^24.0.14",
