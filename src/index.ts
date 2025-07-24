@@ -11,6 +11,11 @@ async function main() {
 
     try {
         await runCommand(registry, cmdName, ...cmdArgs);
+        
+        // Only exit for non-TUI commands and non-long-running commands
+        if (cmdName !== 'agg' && !cmdArgs.includes('--tui')) {
+            process.exit(0);
+        }
     } catch (err) {
         if (err instanceof Error) {
             console.error(`Error running command ${cmdName}: ${err.message}`);
@@ -19,7 +24,6 @@ async function main() {
         }
         process.exit(1);
     }
-    process.exit(0);
 }
 
 main();

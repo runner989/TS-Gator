@@ -112,6 +112,10 @@ npm run start browse --before 2024-12-31                   # Posts before specif
 # Combined options
 npm run start browse --limit 10 --sort published_at --feed "Tech" --search "AI"
 
+# Launch interactive TUI mode
+npm run start browse --tui
+npm run start browse --interactive
+
 # Get help with all options
 npm run start browse --help
 ```
@@ -151,6 +155,8 @@ npm run start agg 1m
 4. **Browse the collected posts:**
 ```bash
 npm run start browse 5
+# Or use the interactive TUI mode
+npm run start browse --tui
 ```
 
 ## Features
@@ -159,14 +165,52 @@ npm run start browse 5
 - **RSS Feed Management**: Add, follow, and unfollow RSS feeds
 - **Automatic Post Collection**: Continuously fetch and store posts from followed feeds
 - **Advanced Post Browsing**: 
+  - **Interactive TUI Mode**: Full-screen terminal interface with mouse and keyboard support
   - **Pagination**: Navigate through large numbers of posts
   - **Sorting**: Sort by publish date, creation date, or title (ascending/descending)
   - **Filtering**: Filter by feed name, search in titles, date ranges
   - **Flexible Display**: Choose how many posts to show per page
+  - **Browser Integration**: Open posts directly in your default browser
 - **Duplicate Prevention**: Automatically handles duplicate posts
 - **Flexible Scheduling**: Configure how often feeds are fetched
 - **Date Parsing**: Handles various RSS date formats
 - **Database Storage**: All data is stored in PostgreSQL for persistence
+
+## Interactive TUI Mode
+
+TS-Gator includes a full-featured Text User Interface (TUI) for browsing posts interactively:
+
+### Features
+- **Full-screen interface** with mouse and keyboard support
+- **Real-time navigation** through your posts
+- **Detailed post view** with full descriptions
+- **Browser integration** - open posts directly in your browser
+- **Keyboard shortcuts** for efficient navigation
+- **Responsive design** that adapts to terminal size
+
+### Usage
+```bash
+# Launch TUI with all posts
+npm run start -- browse --tui
+
+# Launch TUI with filtered posts
+npm run start -- browse --tui --feed "Hacker News"
+npm run start -- browse --tui --search "javascript"
+```
+
+### Keyboard Shortcuts
+- **↑/k** - Move up
+- **↓/j** - Move down  
+- **Enter/Space** - View post details
+- **o** - Open post in browser
+- **h/?** - Show help
+- **Escape** - Go back / Exit
+- **q** - Quit application
+
+### Views
+1. **List View**: Browse all posts with title, feed, and date
+2. **Detail View**: Read full post information with description
+3. **Help View**: Complete keyboard shortcut reference
 
 ## Development
 

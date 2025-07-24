@@ -68,6 +68,7 @@ export interface BrowseOptions {
     titleSearch?: string;
     publishedAfter?: Date;
     publishedBefore?: Date;
+    tui?: boolean;
 }
 
 export function parseBrowseArgs(args: string[]): BrowseOptions {
@@ -147,6 +148,12 @@ export function parseBrowseArgs(args: string[]): BrowseOptions {
                 }
                 break;
                 
+            case '--tui':
+            case '--interactive':
+            case '-i':
+                options.tui = true;
+                break;
+                
             default:
                 // If it's just a number without a flag, treat it as limit (backward compatibility)
                 if (!isNaN(parseInt(arg)) && !options.limit) {
@@ -173,6 +180,7 @@ Options:
   --search, -t <text>      Search in post titles (partial match)
   --after <date>           Show posts published after date (YYYY-MM-DD)
   --before <date>          Show posts published before date (YYYY-MM-DD)
+  --tui, -i                Launch interactive TUI mode
   --help, -h               Show this help message
 
 Examples:
@@ -182,6 +190,7 @@ Examples:
   browse --feed "Hacker News"                # Show posts from feeds with "Hacker News" in name
   browse --search "javascript"               # Search for posts with "javascript" in title
   browse --after 2024-01-01                  # Show posts published after Jan 1, 2024
+  browse --tui                               # Launch interactive TUI browser
   browse 5                                   # Backward compatible: show 5 posts
 `);
 }
